@@ -1,0 +1,124 @@
+
+
+
+1. To test the code:
+To test this code, you'll need to set up a testing environment where you can simulate HTTP requests to your Flask application.
+
+Write tests using a testing framework:
+Use a testing framework like pytest along with Flask's built-in testing client to create your tests. Create a test_flask_app.py file:
+
+
+import io
+import json
+import pytest
+from your_flask_app import app, db, FileData, EmployeeData
+
+@pytest.fixture
+def client():
+    app.config['TESTING'] = True
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+    with app.test_client() as client:
+        with app.app_context():
+            db.create_all()
+        yield client
+
+def test_upload_file(client):
+    data = {
+        'file': (io.BytesIO(b'date,hours worked,employee id,job group\n01/07/2023,8,emp1,A\n02/07/2023,8,emp1,A'), 'test.csv')
+    }
+    response = client.post('/upload', content_type='multipart/form-data', data=data)
+    assert response.status_code == 200
+    assert b'File successfully uploaded and saved' in response.data
+
+def test_view_file(client):
+    # First, upload a file to be viewed
+    data = {
+        'file': (io.BytesIO(b'date,hours worked,employee id,job group\n01/07/2023,8,emp1,A\n02/07/2023,8,emp1,A'), 'test.csv')
+    }
+    client.post('/upload', content_type='multipart/form-data', data=data)
+    
+    response = client.get('/view/test.csv')
+    assert response.status_code == 200
+    assert b'File is present' in response.data
+
+def test_retrieve_report(client):
+    # Upload a file first
+    data = {
+        'file': (io.BytesIO(b'date,hours worked,employee id,job group\n01/07/2023,8,emp1,A\n16/07/2023,8,emp2,B'), 'test.csv')
+    }
+    client.post('/upload', content_type='multipart/form-data', data=data)
+
+    response = client.get('/getData')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data) == 2  # Verify the number of entries
+
+def test_payroll_report(client):
+    # Upload a file first
+    data = {
+        'file': (io.BytesIO(b'date,hours worked,employee id,job group\n01/07/2023,8,emp1,A\n16/07/2023,8,emp2,B'), 'test.csv')
+    }
+    client.post('/upload', content_type='multipart/form-data', data=data)
+
+    response = client.get('/payroll_report')
+    assert response.status_code == 200
+    payroll_report = json.loads(response.data)
+    assert 'payrollReport' in payroll_report
+    assert 'employeeReports' in payroll_report['payrollReport']
+    assert len(payroll_report['payrollReport']['employeeReports']) == 2  # Verify the number of reports
+
+
+
+
+Run tests:
+pytest test_flask_app.py
+
+
+
+
+
+2. If this application was destined for a production environment, what would you add or change?
+When preparing a Flask application for a production environment, several best practices and additional configurations should be implemented to ensure security, reliability, and scalability. Here are some key changes and additions:
+
+a. Use a Production-Ready Web Server:
+Instead of the built-in Flask server, use a production-ready server like Gunicorn or uWSGI.
+
+
+b. Database Configuration:
+Use a robust database like PostgreSQL or MySQL instead of SQLite. Update the database URI in your configuration.
+
+c. Environment Variables:
+Store sensitive configurations such as database URIs, secret keys, and other credentials in environment variables or a vault.
+
+d. Error Handling:
+Implement error handling to manage unexpected errors gracefully and provide appropriate responses.
+
+e. Logging:
+Configure logging to keep track of application behavior and errors.
+
+f. Documentation
+Provide comprehensive documentation for your API endpoints, including example requests and responses. Use tools like Swagger or Postman for API documentation.
+
+
+
+
+
+3. What compromises did you have to make as a result of the time constraints of this challenge?
+
+Given the time constraints of this challenge, there are several areas where compromises might have been made:
+
+a. Simplified Error Handling:
+Ideally, error handling would be more comprehensive, with custom error handlers for different types of errors.
+
+b. Basic Input Validation:
+More thorough validation would include checking the file content format and structure, not just the file extension.
+
+c. Minimal Tests:
+Extensive testing would include edge cases, invalid inputs, and performance tests.
+
+d. Basic Database Configuration:
+For production, a more robust database system like PostgreSQL or MySQL would be used.
+
+
+
+

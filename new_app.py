@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from models import db, FileData, EmployeeData
 from datetime import datetime
 import calendar
+from utils import formatAmountPaid
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -123,6 +124,11 @@ def get_payroll_report():
             }
 
         payroll_data[pay_period_key]['amountPaid'] += entry.hours_worked * hourly_rates[entry.job_group]
+
+
+    formatAmountPaid(payroll_data)
+
+
 
     # Convert the payroll data to the desired JSON format
     payroll_report = {
